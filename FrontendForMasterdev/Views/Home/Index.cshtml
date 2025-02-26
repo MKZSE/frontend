@@ -1,34 +1,53 @@
-﻿@using frontendForMasterdev.Models
-﻿
-@model List<GetLogsModel>
+﻿@using frontendForMasterDev.Models
+@using frontendForMasterdev.Models
+@model MultiModelViewModel
+
 @{
-    ViewData["Title"] = "Admin panel";
+    ViewData["Title"] = "Admin Panel";
 }
 <div class="container py-4">
     <h1 class="mb-4">Admin Panel</h1>
 
-
+    <!-- Sekcja dla przełączania stanu aktualizacji -->
     <div class="card mb-3">
         <div class="card">
-            <form>
+            <form asp-action="GetUpdatedEnabled">
                 <div class="card-body d-flex justify-content-between align-items-center">
-                    <span class="fw-bold" id="stan">Updates Disabled</span>
-                    <button id="toggleButton" class="btn btn-danger" value="0">OFF</button>
+                    <span class="fw-bold" id="stan">
+                        @if (Model != null)
+                        {
+                            @Model.UpdatesEnabled
+                        }
+                    </span>
+
+                    <!-- Ukryte pole z wartością 1 lub 0, w zależności od stanu -->
+                    <input type="hidden" name="i" value="@((Model != null && Model.UpdatesEnabled == "AKTUALIZACJE WŁĄCZONE.") ? 0 : 1)" id="inputValue" />
+
+                    <!-- Przycisk z odpowiednią klasą i tekstem w zależności od stanu -->
+                    <button id="toggleButton"
+                            class="btn @(Model != null && Model.UpdatesEnabled == "AKTUALIZACJE WŁĄCZONE." ? "btn-success" : "btn-danger")"
+                            value="@((Model != null && Model.UpdatesEnabled == "AKTUALIZACJE WŁĄCZONE.") ? 1 : 0)"
+                            type="submit">
+                        @(Model != null && Model.UpdatesEnabled == "AKTUALIZACJE WŁĄCZONE." ? "ON" : "OFF")
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
+   
 
+
+    <!-- Sekcja wysyłania logów -->
     <div class="row mb-3 g-3 d-flex justify-content-center align-items-center">
         <div class="col-md-6">
             <div class="card p-3 h-100">
-                <form>
+                <form asp-action="SendLogs">
                     <div class="mb-3">
-                        <input type="text" class="form-control" placeholder="AppId">
+                        <input type="number" class="form-control" name="appId" placeholder="AppId">
                     </div>
                     <div class="mb-3">
-                        <input type="text" class="form-control" placeholder="Message">
+                        <input type="text" class="form-control" name="message" placeholder="Message">
                     </div>
                     <button class="btn btn-secondary w-100">Send Logs</button>
                 </form>
@@ -36,14 +55,14 @@
         </div>
     </div>
 
-
+    <!-- Sekcja wyświetlania logów -->
     <div class="card mb-3">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">Log Table</h5>
-                <form class="d-flex w-50" asp-action="GetLogs">
+                <form class="d-flex w-50" asp-action="GetLogs" method="get">
                     <div class="mb-0 me-2">
-                        <input type="text" class="form-control" name="app_id" placeholder="AppId">
+                        <input type="number" class="form-control" name="appId" placeholder="AppId">
                     </div>
                     <button class="btn btn-primary">Download Logs</button>
                 </form>
@@ -55,25 +74,19 @@
                             <th>ID</th>
                             <th>Date</th>
                             <th>Log Message</th>
-                            
-
                         </tr>
                     </thead>
                     <tbody>
-                        @if(Model != null){
-                            @foreach(var row in Model)
+                        @if (Model != null && Model.Logs != null)
+                        {
+                            foreach (var row in Model.Logs)
                             {
                                 <tr>
                                     <td>@row.id</td>
                                     <td>@row.date</td>
                                     <td>@row.message</td>
-                                    
                                 </tr>
                             }
-                        }
-                        else
-                        {
-                            
                         }
                     </tbody>
                 </table>
@@ -81,6 +94,7 @@
         </div>
     </div>
 
+    <!-- Sekcja wyświetlania aplikacji -->
     <div class="card mb-3">
         <div class="card-body">
             <form asp-action="GetApps">
@@ -94,28 +108,53 @@
                             <th>Name</th>
                         </tr>
                     </thead>
-                        <tbody>
-                        
-                        </tbody>
+                    <tbody>
+                        @if (Model != null && Model.Apps != null)
+                        {
+                            foreach (var app in Model.Apps)
+                            {
+                                <tr>
+                                    <td>@app.traceId</td>
+                                    <td>@app.title</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
+    <!-- Sekcja pobierania aktualizacji według nazwy aplikacji -->
     <div class="card mb-3">
         <div class="card-body">
             <h5 class="mb-3">Get Update By File Name</h5>
-            <form>
-                <input type="text" class="form-control mb-2" placeholder="Enter Application Name">
-                <input type="text" class="form-control mb-2" placeholder="Enter Version">
+            <form asp-action="GetUpdate" method="post">
+                <input type="text" class="form-control mb-2" name="nazwa_aplikacji" placeholder="Enter Application Name">
+                <input type="text" class="form-control mb-2" name="version" placeholder="Enter Version">
                 <button class="btn btn-info">Fetch</button>
             </form>
+            @if (Model != null && Model.Updates != null && Model.Updates.Any())
+            {
+                <ul class="mt-3">
+                    @foreach (var update in Model.Updates)
+                    {
+                        <li>
+                            <strong>ID:</strong> @update.traceId,
+                            <strong>Title:</strong> @update.title,
+                            <strong>Status:</strong> @update.status
+                        </li>
+                    }
+                </ul>
+            }
         </div>
     </div>
 
+    <!-- Sekcja Upload Update -->
     <div class="card mb-3">
         <div class="card-body">
-            <form>            <h5 class="mb-3">Upload Update</h5>
+            <form>
+                <h5 class="mb-3">Upload Update</h5>
                 <div class="mb-3">
                     <input type="text" class="form-control" placeholder="Enter Version">
                 </div>
@@ -125,16 +164,15 @@
                 <div class="mb-3">
                     <input type="text" class="form-control" placeholder="Application ID">
                 </div>
-            
                 <div class="mb-3">
                     <input type="file" class="form-control">
                 </div>
                 <button class="btn btn-warning">Upload</button>
             </form>
-
         </div>
     </div>
 
+    <!-- Sekcja sprawdzania nowszej wersji -->
     <div class="card mb-3">
         <div class="card-body">
             <form>
@@ -150,25 +188,22 @@
         </div>
     </div>
 
+    <!-- Sekcja dodawania nowej aplikacji -->
     <div class="card mb-3">
         <div class="card-body">
             <form>
                 <h5 class="mb-3">Add New Application</h5>
                 <div class="mb-3">
                     <input type="text" class="form-control" placeholder="Enter Application Name">
-
                 </div>
                 <div class="mb-3">
                     <input type="text" class="form-control" placeholder="Enter Directory Name">
-
                 </div>
                 <div class="mb-3">
                     <input type="text" class="form-control" placeholder="Site Address">
-
                 </div>
                 <div class="mb-3">
                     <input type="text" class="form-control" placeholder="iisAppPoolName">
-
                 </div>
                 <div class="mb-3">
                     <input type="text" class="form-control" placeholder="iisAppPoolName">
@@ -180,39 +215,58 @@
             </form>
         </div>
     </div>
-
-   
 </div>
 
-<script>
+@*<script>
     document.addEventListener("DOMContentLoaded", function () {
         const przyciskZmiany = document.getElementById("toggleButton");
-
         const savedState = localStorage.getItem("buttonState");
 
         if (savedState === "enabled") {
             przyciskZmiany.classList.replace("btn-danger", "btn-success");
             przyciskZmiany.innerHTML = "ON";
-              przyciskZmiany.value = "1";
+            przyciskZmiany.value = "1";
             document.getElementById("stan").innerHTML = "Updates Enabled";
         }
 
-        przyciskZmiany.addEventListener("click", function () {
+        przyciskZmiany.addEventListener("click", function (event) {
+            event.preventDefault();
             if (przyciskZmiany.classList.contains("btn-danger")) {
                 przyciskZmiany.classList.replace("btn-danger", "btn-success");
                 przyciskZmiany.innerHTML = "ON";
-                 przyciskZmiany.value = "1";
+                przyciskZmiany.value = "1";
                 document.getElementById("stan").innerHTML = "Updates Enabled";
                 localStorage.setItem("buttonState", "enabled");
             } else {
                 przyciskZmiany.classList.replace("btn-success", "btn-danger");
                 przyciskZmiany.innerHTML = "OFF";
-                 przyciskZmiany.value = "0";
+                przyciskZmiany.value = "0";
                 document.getElementById("stan").innerHTML = "Updates Disabled";
                 localStorage.setItem("buttonState", "disabled");
             }
         });
-
     });
+</script>*@
+<script>
+    function toggleUpdateState(event) {
+        event.preventDefault();  // Zapobiegamy domyślnej akcji wysyłania formularza
 
+        // Sprawdzamy, czy aktualnie jest "Enabled" czy "Disabled"
+        var isEnabled = document.getElementById('stan').innerText === "Updates Enabled";
+
+        // Zmieniamy wartość i na 0 (Disabled) lub 1 (Enabled)
+        var newValue = isEnabled ? 0 : 1;
+
+        // Przypisujemy nową wartość 'i' w formularzu jako hidden input
+        var hiddenInput = document.createElement("input");
+        hiddenInput.type = "hidden";
+        hiddenInput.name = "i";
+        hiddenInput.value = newValue;
+
+        // Dodajemy ukryte pole do formularza
+        document.getElementById('updateForm').appendChild(hiddenInput);
+
+        // Wysyłamy formularz
+        event.target.form.submit();
+    }
 </script>
